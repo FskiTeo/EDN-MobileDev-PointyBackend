@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
-import { compare } from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { db } from "../db";
 import { teachers } from "../db/schema";
-import { type AuthTokenPayload, jwtSecret, requireAuth } from "../middlewares/authMiddleware";
+import { type AuthTokenPayload, requireAuth, jwtSecret } from "../middlewares/authMiddleware";
+import { compare } from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const teachersRouter = Router();
 
@@ -26,10 +26,16 @@ teachersRouter.get("/me", requireAuth, async (_req, res) => {
     }
 });
 
-teachersRouter.get("/:id", async (req, res) => {
+teachersRouter.get("/:id", requireAuth, async (req, res) => {
     try {
+        const { id } = req.params;
+
+        if (!id || typeof id !== "string") {
+            return res.status(400).json({ message: "Teacher ID is required" });
+        }
+
         const teacher = await db.query.teachers.findFirst({
-            where: eq(teachers.id, req.params.id),
+            where: eq(teachers.id, id),
             columns: { id: true, firstName: true, lastName: true, email: true },
         });
 
@@ -43,9 +49,9 @@ teachersRouter.get("/:id", async (req, res) => {
     }
 });
 
-teachersRouter.post("/login", async (req, res) => {
+teachersRouter.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email = null, password = null } = req.body || {};
 
         if (!email || !password) {
             return res.status(400).json({ message: "Email and password are required" });

@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { courses, courseStudents } from "../db/schema";
+import { requireAuth } from "../middlewares/authMiddleware";
 
 const coursesRouter = Router();
 
-coursesRouter.get("/", async (_req, res) => {
+coursesRouter.get("/", requireAuth, async (_req, res) => {
 	try {
 		const data = await db.query.courses.findMany({
 			with: {
@@ -21,7 +22,7 @@ coursesRouter.get("/", async (_req, res) => {
 	}
 });
 
-coursesRouter.get("/mycourses", async (_req, res) => {
+coursesRouter.get("/mycourses", requireAuth, async (_req, res) => {
 	try {
 		const teacherId = res.locals['auth'].teacherId;
 
@@ -45,10 +46,16 @@ coursesRouter.get("/mycourses", async (_req, res) => {
 	}
 });
 
-coursesRouter.get("/:id", async (req, res) => {
+coursesRouter.get("/:id", requireAuth, async (req, res) => {
 	try {
+		const { id } = req.params;
+		
+		if (!id || typeof id !== "string") {
+			return res.status(400).json({ message: "Course ID is required" });
+		}
+
 		const data = await db.query.courses.findFirst({
-			where: eq(courses.id, req.params.id),
+			where: eq(courses.id, id),
 			with: {
 				teacher: true,
 				courseStudents: {
@@ -69,16 +76,20 @@ coursesRouter.get("/:id", async (req, res) => {
 	}
 });
 
-coursesRouter.patch("/presence/:courseId/:studentId/:attendance", async (req, res) => {
+coursesRouter.patch("/presence/:courseId/:studentId/:attendance", requireAuth, async (req, res) => {
     try {
         const { courseId, studentId, attendance } = req.params;
 
-            if (!["present", "absent", "excused"].includes(attendance)) {
-                return res.status(400).json({ message: "Invalid attendance value" });
-            }
+		if (!courseId || !studentId || !attendance || typeof courseId !== "string" || typeof studentId !== "string" || typeof attendance !== "string") {
+			return res.status(400).json({ message: "Course ID, student ID, and attendance are required" });
+		}
+
+        if (!["present", "absent", "excused"].includes(attendance)) {
+            return res.status(400).json({ message: "Invalid attendance value" });
+        }
 
         const existing = await db.query.courseStudents.findFirst({
-            where: eq(courseStudents.courseId, courseId) && eq(courseStudents.studentId, studentId),
+            where: and(eq(courseStudents.courseId, courseId), eq(courseStudents.studentId, studentId)),
         });
 
         if (!existing) {
@@ -87,7 +98,7 @@ coursesRouter.patch("/presence/:courseId/:studentId/:attendance", async (req, re
 
         await db.update(courseStudents)
             .set({ attendance: attendance as "present" | "absent" | "excused" })
-            .where(eq(courseStudents.courseId, courseId) && eq(courseStudents.studentId, studentId));
+            .where(and(eq(courseStudents.courseId, courseId), eq(courseStudents.studentId, studentId)));
 
         return res.json({ message: "Check-in successful", studentId, courseId, attendance });
     } catch (error) {
