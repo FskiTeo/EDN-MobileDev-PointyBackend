@@ -6,6 +6,44 @@ import { requireAuth } from "../middlewares/authMiddleware";
 
 const coursesRouter = Router();
 
+/**
+ * @swagger
+ * /courses:
+ *   get:
+ *     summary: Get all courses
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Courses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   teacher:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       firstName:
+ *                         type: string
+ *                       lastName:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 coursesRouter.get("/", requireAuth, async (_req, res) => {
 	try {
 		const data = await db.query.courses.findMany({
@@ -22,6 +60,51 @@ coursesRouter.get("/", requireAuth, async (_req, res) => {
 	}
 });
 
+/**
+ * @swagger
+ * /courses/mycourses:
+ *   get:
+ *     summary: Get courses taught by current teacher
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Courses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   teacher:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       firstName:
+ *                         type: string
+ *                       lastName:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                   courseStudents:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         student:
+ *                           type: object
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 coursesRouter.get("/mycourses", requireAuth, async (_req, res) => {
 	try {
 		const teacherId = res.locals['auth'].teacherId;
@@ -46,6 +129,51 @@ coursesRouter.get("/mycourses", requireAuth, async (_req, res) => {
 	}
 });
 
+/**
+ * @swagger
+ * /courses/{id}:
+ *   get:
+ *     summary: Get course by ID
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 teacher:
+ *                   type: object
+ *                 courseStudents:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       student:
+ *                         type: object
+ *       400:
+ *         description: Invalid course ID
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Internal server error
+ */
 coursesRouter.get("/:id", requireAuth, async (req, res) => {
 	try {
 		const { id } = req.params;
@@ -76,6 +204,59 @@ coursesRouter.get("/:id", requireAuth, async (req, res) => {
 	}
 });
 
+/**
+ * @swagger
+ * /courses/presence/{courseId}/{studentId}/{attendance}:
+ *   patch:
+ *     summary: Update student attendance for a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Student ID
+ *       - in: path
+ *         name: attendance
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [present, absent, excused]
+ *         description: Attendance status
+ *     responses:
+ *       200:
+ *         description: Check-in successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 studentId:
+ *                   type: string
+ *                 courseId:
+ *                   type: string
+ *                 attendance:
+ *                   type: string
+ *       400:
+ *         description: Invalid parameters
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course or student not found
+ *       500:
+ *         description: Internal server error
+ */
 coursesRouter.patch("/presence/:courseId/:studentId/:attendance", requireAuth, async (req, res) => {
     try {
         const { courseId, studentId, attendance } = req.params;

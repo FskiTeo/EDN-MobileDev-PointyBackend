@@ -8,6 +8,40 @@ import jwt from "jsonwebtoken";
 
 const teachersRouter = Router();
 
+/**
+ * @swagger
+ * /teachers/me:
+ *   get:
+ *     summary: Get current teacher profile
+ *     tags: [Teachers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Teacher profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 lastLogin:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Teacher not found
+ *       500:
+ *         description: Internal server error
+ */
 teachersRouter.get("/me", requireAuth, async (_req, res) => {
     try {
         const payload = res.locals["auth"] as AuthTokenPayload;
@@ -26,6 +60,46 @@ teachersRouter.get("/me", requireAuth, async (_req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /teachers/{id}:
+ *   get:
+ *     summary: Get teacher by ID
+ *     tags: [Teachers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Teacher ID
+ *     responses:
+ *       200:
+ *         description: Teacher retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *       400:
+ *         description: Invalid teacher ID
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Teacher not found
+ *       500:
+ *         description: Internal server error
+ */
 teachersRouter.get("/:id", requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
@@ -49,6 +123,59 @@ teachersRouter.get("/:id", requireAuth, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /teachers/login:
+ *   post:
+ *     summary: Login teacher
+ *     tags: [Teachers]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *                 teacher:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *       400:
+ *         description: Email and password are required
+ *       401:
+ *         description: Invalid credentials
+ *       404:
+ *         description: Teacher not found
+ *       500:
+ *         description: Internal server error
+ */
 teachersRouter.post('/login', async (req, res) => {
     try {
         const { email = null, password = null } = req.body || {};
