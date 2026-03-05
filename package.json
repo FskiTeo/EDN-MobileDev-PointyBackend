@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "db:seed": "pnpm tsx dev/seedDb.ts",
     "db:migrate": "drizzle-kit migrate",
-    "build": "if [ \"$VERCEL\" = \"1\" ]; then drizzle-kit migrate; fi && tsc"
+    "build": "drizzle-kit migrate && tsc"
   },
   "keywords": [],
   "author": "",
