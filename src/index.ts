@@ -2,6 +2,7 @@ import coursesRouter from "./routes/cousesRoute";
 import teachersRouter from "./routes/teachersRoute";
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import path from 'path';
 
 const express = require('express')
 const app = express()
@@ -43,10 +44,15 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./**/routes/*.ts', './**/routes/*.js']
+  apis: [
+    path.join(__dirname, './routes/**/*.ts'),
+    path.join(__dirname, './routes/**/*.js'),
+  ]
 };
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const swaggerSpec = swaggerJsdoc(swaggerOptions) as any;
+
+console.log('Swagger spec paths:', Object.keys((swaggerSpec as any).paths || {}));
 
 // Serve Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
