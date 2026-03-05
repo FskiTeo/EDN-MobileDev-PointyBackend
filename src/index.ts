@@ -43,7 +43,11 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./src/routes/*.ts'], // Path to the API routes
+  apis: [
+    process.env["NODE_ENV"] === 'production' 
+      ? './dist/routes/*.js' 
+      : './src/routes/*.ts'
+  ]
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -57,5 +61,5 @@ app.use('/teachers', teachersRouter)
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
-  console.log(`Swagger docs available at http://localhost:3000/api/docs`)
+  console.log(`Swagger docs available at ${process.env["PROD_URL"] || 'http://localhost:3000'}/api/docs`)
 })
