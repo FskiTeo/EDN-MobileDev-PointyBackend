@@ -93,13 +93,6 @@ coursesRouter.get("/", requireAuth, async (_req, res) => {
  *                         type: string
  *                       email:
  *                         type: string
- *                   courseStudents:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         student:
- *                           type: object
  *                   studentCount:
  *                     type: integer
  *                     description: Number of students enrolled in the course
@@ -120,16 +113,16 @@ coursesRouter.get("/mycourses", requireAuth, async (_req, res) => {
 				},
 				courseStudents: {
 					with: {
-						student: true,
+						student: true
 					},
 				},
 			},
 		});
 
-		const coursesWithCount = data.map(course => ({
-			...course,
-			studentCount: course.courseStudents.length,
-		}));
+		const coursesWithCount = data.map(course => {
+			const { courseStudents, ...rest } = course;
+			return { ...rest, studentCount: courseStudents.length };
+		});
 
 		res.json(coursesWithCount);
 	} catch (error) {
