@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { db } from "../db";
-import { courses, courseStudents } from "../db/schema";
+import { courses, courseStudents, students } from "../db/schema";
 import { requireAuth } from "../middlewares/authMiddleware";
 
 const coursesRouter = Router();
@@ -206,32 +206,33 @@ coursesRouter.get("/:id", requireAuth, async (req, res) => {
 
 /**
  * @swagger
- * /courses/presence/{courseId}/{studentId}/{attendance}:
+ * /courses/attendance:
  *   patch:
  *     summary: Update student attendance for a course
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: courseId
- *         required: true
- *         schema:
- *           type: string
- *         description: Course ID
- *       - in: path
- *         name: studentId
- *         required: true
- *         schema:
- *           type: string
- *         description: Student ID
- *       - in: path
- *         name: attendance
- *         required: true
- *         schema:
- *           type: string
- *           enum: [present, absent, excused]
- *         description: Attendance status
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               courseId:
+ *                 type: string
+ *               studentId:
+ *                 type: string
+ *                 description: Student ID (optional if using cardSerial)
+ *               cardSerial:
+ *                 type: string
+ *                 description: Student card serial (optional if using studentId)
+ *               attendance:
+ *                 type: string
+ *                 enum: [present, absent, excused]
+ *             required:
+ *               - courseId
+ *               - attendance
  *     responses:
  *       200:
  *         description: Check-in successful
@@ -257,20 +258,35 @@ coursesRouter.get("/:id", requireAuth, async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-coursesRouter.patch("/presence/:courseId/:studentId/:attendance", requireAuth, async (req, res) => {
+coursesRouter.patch("/attendance", requireAuth, async (req, res) => {
     try {
-        const { courseId, studentId, attendance } = req.params;
+        let { courseId = null, studentId = null, cardSerial = null, attendance = null } = req.body || {};
 
-		if (!courseId || !studentId || !attendance || typeof courseId !== "string" || typeof studentId !== "string" || typeof attendance !== "string") {
-			return res.status(400).json({ message: "Course ID, student ID, and attendance are required" });
+		if (!courseId || typeof courseId !== "string") {
+			return res.status(400).json({ message: "Bad request." });
 		}
-
+		if ((!studentId || typeof studentId !== "string") && (!cardSerial || typeof cardSerial !== "string")) {
+			return res.status(400).json({ message: "Bad request." });
+		}
         if (!["present", "absent", "excused"].includes(attendance)) {
             return res.status(400).json({ message: "Invalid attendance value" });
         }
 
+		if (cardSerial && !studentId) {
+			const student = await db.query.students.findFirst({
+				where: eq(students.cardSerial, cardSerial),
+			});
+			if (!student) {
+				return res.status(404).json({ message: "Student not found" });
+			}
+			studentId = student.id;
+		}
+
         const existing = await db.query.courseStudents.findFirst({
-            where: and(eq(courseStudents.courseId, courseId), eq(courseStudents.studentId, studentId)),
+            where: and(
+				eq(courseStudents.courseId, courseId),
+				eq(courseStudents.studentId, studentId)
+			)
         });
 
         if (!existing) {
@@ -281,7 +297,7 @@ coursesRouter.patch("/presence/:courseId/:studentId/:attendance", requireAuth, a
             .set({ attendance: attendance as "present" | "absent" | "excused" })
             .where(and(eq(courseStudents.courseId, courseId), eq(courseStudents.studentId, studentId)));
 
-        return res.json({ message: "Check-in successful", studentId, courseId, attendance });
+        return res.status(200).json({ message: "Check-in successful", studentId, courseId, attendance });
     } catch (error) {
         return res.status(500).json({ message: "Failed to check in", error });
     }
