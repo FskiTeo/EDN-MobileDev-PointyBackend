@@ -112,9 +112,7 @@ coursesRouter.get("/mycourses", requireAuth, async (_req, res) => {
 					columns: { id: true, firstName: true, lastName: true, email: true },
 				},
 				courseStudents: {
-					with: {
-						student: true
-					},
+					columns: { studentId: true }
 				},
 			},
 		});
@@ -186,10 +184,15 @@ coursesRouter.get("/:id", requireAuth, async (req, res) => {
 		const data = await db.query.courses.findFirst({
 			where: eq(courses.id, id),
 			with: {
-				teacher: true,
+				teacher: {
+					columns: { id: true, firstName: true, lastName: true, email: true }
+				},
 				courseStudents: {
+					columns: { studentId: true, attendance: true },
 					with: {
-						student: true,
+						student: {
+							columns: { id: true, firstName: true, lastName: true }
+						},
 					},
 				},
 			},
