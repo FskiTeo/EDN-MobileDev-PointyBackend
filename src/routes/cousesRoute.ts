@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { courses, courseStudents, students } from "../db/schema";
 import { requireAuth } from "../middlewares/authMiddleware";
