@@ -100,6 +100,9 @@ coursesRouter.get("/", requireAuth, async (_req, res) => {
  *                       properties:
  *                         student:
  *                           type: object
+ *                   studentCount:
+ *                     type: integer
+ *                     description: Number of students enrolled in the course
  *       401:
  *         description: Unauthorized
  *       500:
@@ -123,7 +126,12 @@ coursesRouter.get("/mycourses", requireAuth, async (_req, res) => {
 			},
 		});
 
-		res.json(data);
+		const coursesWithCount = data.map(course => ({
+			...course,
+			studentCount: course.courseStudents.length,
+		}));
+
+		res.json(coursesWithCount);
 	} catch (error) {
 		res.status(500).json({ message: "Failed to fetch my courses", error });
 	}
